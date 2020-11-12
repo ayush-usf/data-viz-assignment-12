@@ -2,7 +2,7 @@
 // Converted manually to d3v6
 
 let  margin = {top: 120, right: 150, bottom: 10, left: 150},
-    width = 760 - margin.left - margin.right,
+    width = 1260 - margin.left - margin.right,
     height = 550 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
@@ -15,24 +15,38 @@ let g = svg.append("g")
         "translate(" + margin.left + "," + margin.top + ")");
 
 // Parse the Data
-d3.csv("food.csv")
+d3.csv("car3.csv")
     .then(data =>{
 
-    let reqdColumns = ['Data.Vitamins.Vitamin B6',  'Data.Vitamins.Vitamin E',  'Data.Major Minerals.Iron',  'Data.Major Minerals.Copper','Category']
-    let reqdCategory = ["BUTTER", "BLACKBERRIES", "CARROTS"]
+    let reqdColumns = ['Engine Information.Engine Statistics.Torque', 'Dimensions.Height', 'Dimensions.Width', 'Engine Information.Engine Statistics.Horsepower'  ,'Category']
+    let reqdCategory = ["AMG", "Maserati", "Maybach"]
+        //               10       12        13
 
+        // Lotus - 11
+        // Maserati - 12
+        // Maybach - 13
+        // Bentley - 18
     let newData = {}
     let idx = 0;
+    let [min, max] = [0,0];
 
     data.forEach((val,mainKey)=> {
-        if (reqdCategory.includes(val["Category"])) {
+        if (reqdCategory.includes(val["Identification.Make"])) {
             newData[idx] = {
-                "Data.Vitamins.Vitamin B6": +val['Data.Vitamins.Vitamin B6'],
-                "Data.Vitamins.Vitamin E": +val['Data.Vitamins.Vitamin E'],
-                "Data.Major Minerals.Iron": +val['Data.Major Minerals.Iron'],
-                "Data.Major Minerals.Copper": +val['Data.Major Minerals.Copper'],
-                "Category": val['Category']
+                "Dimensions.Height": +val['Dimensions.Height'],
+                'Engine Information.Engine Statistics.Horsepower': +val['Engine Information.Engine Statistics.Horsepower'],
+                "Dimensions.Width": +val['Dimensions.Width'],
+                "Engine Information.Engine Statistics.Torque": +val['Engine Information.Engine Statistics.Torque'],
             }
+            let arr = Object.values(newData[idx])
+            let currMin = Math.min.apply(null,arr)
+            let currMax = Math.max.apply(null,arr)
+            if(min == 0 || currMin < min)
+                min = currMin
+            if(max == 0 || currMax > max)
+                max = currMax
+            newData[idx]["Category"] = val['Identification.Make']
+
             idx++;
         }
     })
@@ -41,18 +55,18 @@ d3.csv("food.csv")
 
     // Color scale: give me a specie name, returning a color
     let  color = d3.scaleOrdinal()
-        .domain(['Data.Vitamins.Vitamin B6',  'Data.Vitamins.Vitamin E',  'Data.Major Minerals.Iron',  'Data.Major Minerals.Copper' ])
-        .range([ "#440154ff", "#21908dff", "#bcbd22", "#ff7f0e"])
+        .domain(['Engine Information.Engine Statistics.Torque', 'Dimensions.Height', 'Dimensions.Width', 'Engine Information.Engine Statistics.Horsepower' ])
+        .range([ "#ec948d", "#63a5dd", "#eeb35b"])
 
     // Setting the list of dimension manually to control the order of axis:
-    dimensions = ['Data.Vitamins.Vitamin B6',  'Data.Vitamins.Vitamin E',  'Data.Major Minerals.Iron',  'Data.Major Minerals.Copper']
+    dimensions = ['Engine Information.Engine Statistics.Torque', 'Dimensions.Height', 'Dimensions.Width', 'Engine Information.Engine Statistics.Horsepower']
 
     // For each dimension, building a linear scale, storing all in a y object
     let  y = {}
     for (i in dimensions) {
         name = dimensions[i]
         y[name] = d3.scaleLinear()
-            .domain( [0,3] ) // --> Same axis range for each group
+            .domain( [min,max] ) // --> Same axis range for each group
             .range([height, 0])
     }
 
@@ -96,6 +110,70 @@ d3.csv("food.csv")
         return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
     }
 
+    const annotations = [
+        {
+            note: {
+                label: "Average height of Maybach vehicles",
+                // title: "Height"
+                wrap: 150
+            },
+            connector: {
+                end: "arrow" // 'dot' also available
+            },
+            x: width/3,
+            y: height-30,
+            dy: -100,
+            dx: 50
+        },
+        {
+            note: {
+                label: "Average Width of Maybach vehicles",
+                // title: "Height"
+                wrap: 150
+            },
+            connector: {
+                end: "arrow" // 'dot' also available
+            },
+            x: width-320,
+            y: height-60,
+            dy: -150,
+            dx: -50
+        },
+        {
+            note: {
+                label: "Higher Torque values of Maybach vehicles",
+                // title: "Height"
+                wrap: 150
+            },
+            connector: {
+                end: "arrow" // 'dot' also available
+            },
+            x: 0,
+            y: 0,
+            dy: 60,
+            dx: 130
+        },
+        {
+            note: {
+                label: "Higher Horsepower values of Maybach vehicles",
+                // title: "Height"
+                wrap: 150
+            },
+            connector: {
+                end: "arrow" // 'dot' also available
+            },
+            x: width ,
+            y: 70,
+            dy: 80,
+            dx: -150
+        }
+    ];
+
+    const makeAnnotations = d3.annotation()
+        .annotations(annotations);
+    g.attr("class", "annotation")
+        .call(makeAnnotations);
+
     // Draw the lines
     g.selectAll("myPath")
         .data(newData)
@@ -124,7 +202,7 @@ d3.csv("food.csv")
         .style("text-anchor", "middle")
         .attr("y", -9)
         .text(function(d) { return d; })
-        .style("fill", "black")
+        .style("fill", "#000")
 
     g.selectAll("mydots")
         .data(reqdCategory)
@@ -153,7 +231,15 @@ d3.csv("food.csv")
         .attr("x",  width / 10)
         .attr("y", -100)
         .attr("font-size", "24px")
-        .text("Vitamin & Mineral Content in different foods")
+        .text("Relation of Torque with Height, Width and Length for 3 Vehicle Manufacturers")
+
+    // Adding chart label
+    g.append("text")
+        .attr("class", "chart-label")
+        .attr("x",  40)
+        .attr("y", -60)
+        .text("Maybach vehicles have the lowest average height and higher average width, leading higher Torque and Horsepower than its competitors")
+
 
     // Adding chart label
     g.append("text")
@@ -161,7 +247,9 @@ d3.csv("food.csv")
         .attr("x",  width / 2)
         .attr("y", -80)
         .text("Data Source:")
-        .on("click", function() { window.open("food.csv"); })
+        .on("click", function() { window.open("car3.csv"); })
+
+
 
     // Adding chart label
     g.append("text")
@@ -169,6 +257,6 @@ d3.csv("food.csv")
         .attr("x",  width / 2+90)
         .attr("y", -80)
         .text("here")
-        .on("click", function() { window.open("food.csv"); })
+        .on("click", function() { window.open("car3.csv"); })
 
 })
